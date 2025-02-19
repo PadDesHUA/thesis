@@ -52,7 +52,7 @@ if os.path.isfile('weather_data_ath_pred.csv') and os.path.getsize('weather_data
 start_year = 2023
 start_month = 11
 # start_day = 1
-#last_date = None
+# last_date = None
 
 # Check if the last date in CSV file is February 27th or 28th
 if last_date:
