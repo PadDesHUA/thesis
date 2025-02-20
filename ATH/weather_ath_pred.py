@@ -38,6 +38,9 @@ month_mapping = {
     'Jul': 7, 'Aug': 8, 'Sep': 9, 'Oct': 10, 'Nov': 11, 'Dec': 12
 }
 
+last_date = None  # Ensure it's defined
+
+
 # Check if the CSV file exists and is not empty
 if os.path.isfile('weather_data_ath_pred.csv') and os.path.getsize('weather_data_ath_pred.csv') > 0:
     with open('weather_data_ath_pred.csv', 'r') as csvfile:
@@ -49,10 +52,30 @@ if os.path.isfile('weather_data_ath_pred.csv') and os.path.getsize('weather_data
                 print("Last Date =", last_date)
 
 # Initialize start_year with a default value
-start_year = 2023
-start_month = 11
+default_year = 2022
+default_month = 1
 # start_day = 1
 # last_date = None
+
+# Check if last_date is valid
+if last_date:
+    try:
+        last_date_parts = last_date.split('/')  # Split date into parts
+        if len(last_date_parts) < 3:  # Check if date is in expected format
+            raise ValueError(f"Invalid date format: {last_date}")  # Raise error for invalid format
+        last_month = month_mapping[last_date_parts[1]]  # Convert month abbreviation to numeric value
+        last_day = int(last_date_parts[2])  # Parse the day part
+    except (ValueError, KeyError) as e:  # Catch errors for invalid date format or month abbreviation
+        print(f"Error processing last date: {e}")
+        last_date = None  # Set last_date to None if there is an issue with it
+else:
+    print("No valid last date found in the CSV.")
+
+# If last_date is None (or invalid), set the default start month
+if not last_date:
+    print("Using default start values.")
+    start_month = default_month  # Default to January if no valid last_date
+
 
 # Check if the last date in CSV file is February 27th or 28th
 if last_date:
@@ -72,7 +95,9 @@ if last_date:
         start_year = int(last_date_parts[0])
 
 else:
-    start_month = 1
+    start_month = default_month
+
+start_year = default_year
 
 # Open the CSV file in append mode
 with open('weather_data_ath_pred.csv', 'a', newline='') as csvfile:

@@ -8,9 +8,9 @@ from sklearn.preprocessing import StandardScaler
 import os
 
 # Directory paths
-ath_dir = '/ATH'
-thes_dir = '/THES'
-data_dir = '/DATA'
+ath_dir = '/home/itp22109/Documents/HUA/HUA MSc/Χειμερινό 2023/Διπλωματική/GIT_repo/ATH'
+thes_dir = '/home/itp22109/Documents/HUA/HUA MSc/Χειμερινό 2023/Διπλωματική/GIT_repo/THES'
+data_dir = '/home/itp22109/Documents/HUA/HUA MSc/Χειμερινό 2023/Διπλωματική/GIT_repo/DATA'
 
 # Load data from CSV files in the respective directories
 athens_temperatures = pd.read_csv(os.path.join(ath_dir, 'weather_data_ath.csv'))
