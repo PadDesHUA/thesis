@@ -1,4 +1,4 @@
-# !!!!WORKING!!!! Parses 3 following days
+# !!!!WORKING!!!! Parses 3 following days -!!! need adjust for last_month=none I edited
 
 import csv
 import os
@@ -37,10 +37,7 @@ month_mapping = {
     'Jan': 1, 'Feb': 2, 'Mar': 3, 'Apr': 4, 'May': 5, 'Jun': 6,
     'Jul': 7, 'Aug': 8, 'Sep': 9, 'Oct': 10, 'Nov': 11, 'Dec': 12
 }
-
 last_date = None  # Ensure it's defined
-
-
 # Check if the CSV file exists and is not empty
 if os.path.isfile('weather_data_ath_pred.csv') and os.path.getsize('weather_data_ath_pred.csv') > 0:
     with open('weather_data_ath_pred.csv', 'r') as csvfile:
@@ -65,7 +62,9 @@ if last_date:
             raise ValueError(f"Invalid date format: {last_date}")  # Raise error for invalid format
         last_month = month_mapping[last_date_parts[1]]  # Convert month abbreviation to numeric value
         last_day = int(last_date_parts[2])  # Parse the day part
+        print ('last month =',last_month)
     except (ValueError, KeyError) as e:  # Catch errors for invalid date format or month abbreviation
+
         print(f"Error processing last date: {e}")
         last_date = None  # Set last_date to None if there is an issue with it
 else:
@@ -77,11 +76,14 @@ if not last_date:
     start_month = default_month  # Default to January if no valid last_date
 
 
+print ('last date =',last_date)
+
 # Check if the last date in CSV file is February 27th or 28th
 if last_date:
     last_date_parts = last_date.split('/')
     last_month = month_mapping[last_date_parts[1]]  # Convert month abbreviation to numeric value
     last_day = int(last_date_parts[2])
+    
     if is_last_day_of_month(datetime.strptime(last_date, '%Y/%b/%d').date()):
         # If the last date is the last day of the month, set the start month to the next month
         start_month = last_month + 1
@@ -96,8 +98,6 @@ if last_date:
 
 else:
     start_month = default_month
-
-start_year = default_year
 
 # Open the CSV file in append mode
 with open('weather_data_ath_pred.csv', 'a', newline='') as csvfile:
@@ -390,12 +390,25 @@ with open(csv_file_path, 'a', newline='') as csvfile:
             print("Parsed Temps:", temps)
 
             # Locate forecast for the target date
-            if display_date_str in dates:
-                date_index = dates.index(display_date_str)
+            #if display_date_str in dates:
+            normalized_dates = [re.sub(r'\b0', '', date) for date in dates]  # Remove leading zeros
+            if re.sub(r'\b0', '', display_date_str) in normalized_dates:
+
+                #date_index = dates.index(display_date_str)
+                # Normalize formats to match parsed dates
+                normalized_dates = [re.sub(r'\b0', '', date) for date in dates]
+                normalized_display_date = re.sub(r'\b0', '', display_date_str)
+
+                if normalized_display_date in normalized_dates:
+                    date_index = normalized_dates.index(normalized_display_date)
+                    print(f"Matched {normalized_display_date} at index {date_index}")
+                else:
+                    print(f"ERROR: '{normalized_display_date}' not found in {normalized_dates}")
+                date_index = date_index - 1
                 if date_index < len(temps):
                     temperature_values = re.findall(r"-?\d+", temps[date_index])
                     if len(temperature_values) >= 2:
-                        min_temp, max_temp = map(int, temperature_values[:2])
+                        max_temp , min_temp = map(int, temperature_values[:2])
                         avg_temp = (min_temp + max_temp) // 2
                         csvwriter.writerow([forecast_date_str, max_temp, avg_temp, min_temp])
                         print(f"Forecast for {forecast_date_str} written: Max={max_temp}, Avg={avg_temp}, Min={min_temp}")

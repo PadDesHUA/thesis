@@ -29,15 +29,19 @@ def compare_dates(date1, date2):
 
 # Function to check if a date is the last day of the month
 def is_last_day_of_month(date):
-    next_date = date.replace(day=date.day + 1)
-    return next_date.month != date.month
+    try:
+        next_date = date.replace(day=date.day + 1)
+        return next_date.month != date.month
+    except ValueError:
+        return True  # If the day exceeds the month's range, it's the last day
+
 
 # Mapping of month abbreviations to their respective numeric values
 month_mapping = {
     'Jan': 1, 'Feb': 2, 'Mar': 3, 'Apr': 4, 'May': 5, 'Jun': 6,
     'Jul': 7, 'Aug': 8, 'Sep': 9, 'Oct': 10, 'Nov': 11, 'Dec': 12
 }
-
+last_date = None  # Ensure it's defined
 # Check if the CSV file exists and is not empty
 if os.path.isfile('weather_data_thess_pred.csv') and os.path.getsize('weather_data_thess_pred.csv') > 0:
     with open('weather_data_thess_pred.csv', 'r') as csvfile:
@@ -45,34 +49,87 @@ if os.path.isfile('weather_data_thess_pred.csv') and os.path.getsize('weather_da
         print("last date is =", last_date)
         for line in csvfile.readlines():
             if line.strip():
-                last_date = line.split(',')[0]  # Assuming date is the first column
+                last_date = line.split(',')[0].strip()  # Assuming date is the first column
                 print("Last Date =", last_date)
 
 # Initialize start_year with a default value
-start_year = 2023
-start_month = 11
+default_year=2022
+default_month = 1
+start_year = 2022
+start_month = 1
 # start_day = 1
 #last_date = None
+
+
+# # Check if the last date in CSV file is February 27th or 28th
+# if last_date:
+#     last_date_parts = last_date.split('/')
+#     last_month = month_mapping[last_date_parts[1]]  # Convert month abbreviation to numeric value
+#     last_day = int(last_date_parts[2])
+#     if is_last_day_of_month(datetime.strptime(last_date, '%Y/%b/%d').date()):
+#         # If the last date is the last day of the month, set the start month to the next month
+#         start_month = last_month + 1
+#         # If the start month exceeds 12, reset it to 1 and increment the year
+#         if start_month > 12:
+#             start_month = 1
+#             start_year = int(last_date_parts[0]) + 1  # Increment the year
+#     else:
+#         # If the last date is not the last day of the month, use the last month from the CSV
+#         start_month = last_month
+#         start_year = int(last_date_parts[0])
+
+# else:
+#     start_month = 1
+# Check if last_date is valid
+if last_date:
+    try:
+        last_date_parts = last_date.split('/')  # Split date into parts
+        if len(last_date_parts) < 3:  # Check if date is in expected format
+            raise ValueError(f"Invalid date format: {last_date}")  # Raise error for invalid format
+        last_month = month_mapping[last_date_parts[1]]  # Convert month abbreviation to numeric value
+        last_day = int(last_date_parts[2])  # Parse the day part
+        print ('last month =',last_month)
+    except (ValueError, KeyError) as e:  # Catch errors for invalid date format or month abbreviation
+
+        print(f"Error processing last date: {e}")
+        last_date = None  # Set last_date to None if there is an issue with it
+else:
+    print("No valid last date found in the CSV.")
+
+# If last_date is None (or invalid), set the default start month
+if not last_date:
+    print("Using default start values.")
+    start_month = default_month  # Default to January if no valid last_date
+    start_year = default_year    # Ensure start_year is assigned
+
+print ('last date =',last_date)
 
 # Check if the last date in CSV file is February 27th or 28th
 if last_date:
     last_date_parts = last_date.split('/')
+    print('last date parts: ', last_date_parts)
     last_month = month_mapping[last_date_parts[1]]  # Convert month abbreviation to numeric value
     last_day = int(last_date_parts[2])
+    
     if is_last_day_of_month(datetime.strptime(last_date, '%Y/%b/%d').date()):
         # If the last date is the last day of the month, set the start month to the next month
         start_month = last_month + 1
+        print('start month is ', start_month)
         # If the start month exceeds 12, reset it to 1 and increment the year
         if start_month > 12:
             start_month = 1
             start_year = int(last_date_parts[0]) + 1  # Increment the year
+            print('start year >12 is: ', start_year)
+        else:
+            # If the last date is not the last day of the month, use the last month from the CSV
+            #start_month = last_month
+            start_year = int(last_date_parts[0])
+            print('start year if not last date is:', start_year)
     else:
-        # If the last date is not the last day of the month, use the last month from the CSV
-        start_month = last_month
-        start_year = int(last_date_parts[0])
+        start_month = default_month
+        start_year  = int(last_date_parts[0])
+        print('start year last parts is: ', start_year)
 
-else:
-    start_month = 1
 
 # Open the CSV file in append mode
 with open('weather_data_thess_pred.csv', 'a', newline='') as csvfile:
@@ -82,6 +139,7 @@ with open('weather_data_thess_pred.csv', 'a', newline='') as csvfile:
     if csvfile.tell() == 0:
         csvwriter.writerow(['Date', 'Max', 'Avg', 'Min'])  # Header
 
+    print('start year if is: ', start_year)
     # Iterate over the years from start_year to the current year
     for year in range(start_year, today.year + 1):
         # For the starting year, start from the calculated start_month
@@ -365,12 +423,26 @@ with open(csv_file_path, 'a', newline='') as csvfile:
             print("Parsed Temps:", temps)
 
             # Locate forecast for the target date
-            if display_date_str in dates:
-                date_index = dates.index(display_date_str)
+            #if display_date_str in dates:
+                #date_index = dates.index(display_date_str)
+            normalized_dates = [re.sub(r'\b0', '', date) for date in dates]  # Remove leading zeros
+            if re.sub(r'\b0', '', display_date_str) in normalized_dates:
+
+                #date_index = dates.index(display_date_str)
+                # Normalize formats to match parsed dates
+                normalized_dates = [re.sub(r'\b0', '', date) for date in dates]
+                normalized_display_date = re.sub(r'\b0', '', display_date_str)
+
+                if normalized_display_date in normalized_dates:
+                    date_index = normalized_dates.index(normalized_display_date)
+                    print(f"Matched {normalized_display_date} at index {date_index}")
+                else:
+                    print(f"ERROR: '{normalized_display_date}' not found in {normalized_dates}")
+                date_index = date_index - 1
                 if date_index < len(temps):
                     temperature_values = re.findall(r"-?\d+", temps[date_index])
                     if len(temperature_values) >= 2:
-                        min_temp, max_temp = map(int, temperature_values[:2])
+                        max_temp , min_temp = map(int, temperature_values[:2])
                         avg_temp = (min_temp + max_temp) // 2
                         csvwriter.writerow([forecast_date_str, max_temp, avg_temp, min_temp])
                         print(f"Forecast for {forecast_date_str} written: Max={max_temp}, Avg={avg_temp}, Min={min_temp}")
