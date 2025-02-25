@@ -1,3 +1,148 @@
+### WORKING!!!
+
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+from statsmodels.tsa.stattools import adfuller
+from statsmodels.tsa.arima.model import ARIMA
+import os
+
+# Directory paths
+ath_dir = '/home/itp22109/Documents/HUA/HUA MSc/Χειμερινό 2023/Διπλωματική/GIT_repo/ATH'
+thes_dir = '/home/itp22109/Documents/HUA/HUA MSc/Χειμερινό 2023/Διπλωματική/GIT_repo/THES'
+data_dir = '/home/itp22109/Documents/HUA/HUA MSc/Χειμερινό 2023/Διπλωματική/GIT_repo/DATA'
+
+# Load data
+athens_temperatures = pd.read_csv(os.path.join(ath_dir, 'weather_data_ath_pred.csv'))
+thessaloniki_temperatures = pd.read_csv(os.path.join(thes_dir, 'weather_data_thess_pred.csv'))
+internet_traffic = pd.read_csv(os.path.join(data_dir, 'output_data.csv'))
+
+# Convert Date column to datetime format
+athens_temperatures["Date"] = pd.to_datetime(athens_temperatures["Date"], format="%Y/%b/%d")
+thessaloniki_temperatures["Date"] = pd.to_datetime(thessaloniki_temperatures["Date"], format="%Y/%b/%d")
+internet_traffic["Date"] = pd.to_datetime(internet_traffic["Date"], format="%Y/%m/%d")
+
+# Set Date as index
+internet_traffic.set_index("Date", inplace=True)
+
+# Ensure stationarity for internet traffic
+internet_traffic["DataInDiff"] = internet_traffic["DataIn(TB)"].diff().dropna()
+
+# Train ARIMA model using last 4 days of available data
+train_data = internet_traffic.loc["2025-02-20":"2025-02-23", "DataInDiff"].dropna()
+model_traffic = ARIMA(train_data, order=(5,1,0))
+model_traffic_fit = model_traffic.fit()
+
+# Forecast from 24th to 28th February 2025
+forecast_dates = pd.date_range(start="2025-02-24", periods=5, freq="D")
+next_traffic_diff = model_traffic_fit.forecast(steps=5)
+last_traffic = internet_traffic.loc["2025-02-23", "DataIn(TB)"]
+next_traffic = last_traffic + np.cumsum(next_traffic_diff)
+next_traffic[next_traffic < 0] = 0
+
+# Plotting
+fig, axs = plt.subplots(2, 1, figsize=(10, 12))
+
+# Plot temperature data
+axs[0].plot(athens_temperatures["Date"], athens_temperatures["Avg"], label="Athens", color='blue')
+axs[0].plot(thessaloniki_temperatures["Date"], thessaloniki_temperatures["Avg"], label="Thessaloniki", color='red')
+axs[0].set_xlabel("Date")
+axs[0].set_ylabel("Temperature (°C)")
+axs[0].set_title("Temperature Data")
+axs[0].legend()
+axs[0].grid(True)
+
+# Plot internet traffic
+axs[1].plot(internet_traffic.index, internet_traffic["DataIn(TB)"], label="Internet Traffic", color='green')
+axs[1].plot(forecast_dates, next_traffic, 'orange', linestyle='--', label='Predicted Traffic')
+axs[1].set_xlabel("Date")
+axs[1].set_ylabel("Internet Traffic (TB)")
+axs[1].set_title("Internet Traffic Prediction")
+axs[1].legend()
+axs[1].grid(True)
+
+# Align x-axis range based on available data
+overall_start = min(internet_traffic.index.min(), athens_temperatures["Date"].min(), thessaloniki_temperatures["Date"].min())
+overall_end = max(forecast_dates.max(), athens_temperatures["Date"].max(), thessaloniki_temperatures["Date"].max())
+for ax in axs:
+    ax.set_xlim(overall_start, overall_end)
+
+plt.tight_layout()
+plt.show()
+
+# ### WORKING -> minor changes to fine tune it are needed
+
+# import pandas as pd
+# import numpy as np
+# import matplotlib.pyplot as plt
+# from statsmodels.tsa.stattools import adfuller
+# from statsmodels.tsa.arima.model import ARIMA
+# from sklearn.linear_model import LinearRegression
+# import os
+
+# # Directory paths
+# ath_dir = '/home/itp22109/Documents/HUA/HUA MSc/\u03a7\u03b5\u03b9\u03bc\u03b5\u03c1\u03b9\u03bd\u03cc 2023/\u0394\u03b9\u03c0\u03bb\u03c9\u03bc\u03b1\u03c4\u03b9\u03ba\u03ae/GIT_repo/ATH'
+# thes_dir = '/home/itp22109/Documents/HUA/HUA MSc/\u03a7\u03b5\u03b9\u03bc\u03b5\u03c1\u03b9\u03bd\u03cc 2023/\u0394\u03b9\u03c0\u03bb\u03c9\u03bc\u03b1\u03c4\u03b9\u03ba\u03ae/GIT_repo/THES'
+# data_dir = '/home/itp22109/Documents/HUA/HUA MSc/\u03a7\u03b5\u03b9\u03bc\u03b5\u03c1\u03b9\u03bd\u03cc 2023/\u0394\u03b9\u03c0\u03bb\u03c9\u03bc\u03b1\u03c4\u03b9\u03ba\u03ae/GIT_repo/DATA'
+
+# # Load data
+# athens_temperatures = pd.read_csv(os.path.join(ath_dir, 'weather_data_ath_pred.csv'))
+# thessaloniki_temperatures = pd.read_csv(os.path.join(thes_dir, 'weather_data_thess_pred.csv'))
+# internet_traffic = pd.read_csv(os.path.join(data_dir, 'output_data.csv'))
+
+# # Convert Date column to datetime format
+# athens_temperatures["Date"] = pd.to_datetime(athens_temperatures["Date"], format="%Y/%b/%d")
+# thessaloniki_temperatures["Date"] = pd.to_datetime(thessaloniki_temperatures["Date"], format="%Y/%b/%d")
+# internet_traffic["Date"] = pd.to_datetime(internet_traffic["Date"], format="%Y/%m/%d")
+
+# # Set Date as index
+# internet_traffic.set_index("Date", inplace=True)
+
+# # Ensure stationarity for internet traffic
+# internet_traffic["DataInDiff"] = internet_traffic["DataIn(TB)"].diff().dropna()
+
+# # Train ARIMA model using last 4 days of available data
+# train_data = internet_traffic.loc["2025-02-20":"2025-02-23", "DataInDiff"].dropna()
+# model_traffic = ARIMA(train_data, order=(5,1,0))
+# model_traffic_fit = model_traffic.fit()
+
+# # Forecast from 24th to 28th February 2025
+# forecast_dates = pd.date_range(start="2025-02-24", periods=5, freq="D")
+# next_traffic_diff = model_traffic_fit.forecast(steps=5)
+# last_traffic = internet_traffic.loc["2025-02-23", "DataIn(TB)"]
+# next_traffic = last_traffic + np.cumsum(next_traffic_diff)
+# next_traffic[next_traffic < 0] = 0
+
+# # Plotting
+# fig, axs = plt.subplots(2, 1, figsize=(10, 12))
+
+# # Plot temperature data
+# axs[0].plot(athens_temperatures["Date"], athens_temperatures["Avg"], label="Athens", color='blue')
+# axs[0].plot(thessaloniki_temperatures["Date"], thessaloniki_temperatures["Avg"], label="Thessaloniki", color='red')
+# axs[0].set_xlabel("Date")
+# axs[0].set_ylabel("Temperature (°C)")
+# axs[0].set_title("Temperature Data")
+# axs[0].legend()
+# axs[0].grid(True)
+
+# # Plot internet traffic
+# axs[1].plot(internet_traffic.index, internet_traffic["DataIn(TB)"], label="Internet Traffic", color='green')
+# axs[1].plot(forecast_dates, next_traffic, 'orange', linestyle='--', label='Predicted Traffic')
+# axs[1].set_xlabel("Date")
+# axs[1].set_ylabel("Internet Traffic (TB)")
+# axs[1].set_title("Internet Traffic Prediction")
+# axs[1].legend()
+# axs[1].grid(True)
+
+# # Align x-axis range
+# for ax in axs:
+#     ax.set_xlim(pd.to_datetime("2025-02-20"), pd.to_datetime("2025-02-28"))
+
+# plt.tight_layout()
+# plt.show()
+
+
+
 # ###  WORKING but thte ploting needs fine tuning also the ARIMA only in output data
 
 # import pandas as pd
