@@ -1,3 +1,4 @@
+
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
@@ -17,9 +18,9 @@ thessaloniki_temperatures = pd.read_csv(os.path.join(thes_dir, 'weather_data_the
 internet_traffic = pd.read_csv(os.path.join(data_dir, 'output_data.csv'))
 
 # Convert Date column to datetime format
-athens_temperatures['Date'] = pd.to_datetime(athens_temperatures['Date'])
-thessaloniki_temperatures['Date'] = pd.to_datetime(thessaloniki_temperatures['Date'])
-internet_traffic['Date'] = pd.to_datetime(internet_traffic['Date'])
+athens_temperatures['Date'] = pd.to_datetime(athens_temperatures['Date'], format='%Y/%b/%d')
+thessaloniki_temperatures['Date'] = pd.to_datetime(thessaloniki_temperatures['Date'], format='%Y/%b/%d')
+internet_traffic['Date'] = pd.to_datetime(internet_traffic['Date'], format='%Y/%m/%d')
 
 # Set Date as index with frequency
 def set_index_with_freq(df):
@@ -43,70 +44,145 @@ def ensure_stationarity(series):
     return series
 
 # Ensure stationarity for internet traffic
-internet_traffic['DataInDiff'] = ensure_stationarity(internet_traffic['DataIn(TB)'])
+internet_traffic['DataInDiff'] = ensure_stationarity(internet_traffic.iloc[:, 1])
 
-# Ensure stationarity for temperature data
-athens_temperatures['AvgDiff'] = ensure_stationarity(athens_temperatures['Avg'])
-thessaloniki_temperatures['AvgDiff'] = ensure_stationarity(thessaloniki_temperatures['Avg'])
+# Use last 4 days of weather data for prediction
+today = pd.Timestamp('2025-02-24')
+forecast_dates = pd.date_range(start=today + pd.Timedelta(days=1), periods=4, freq='D')
 
 # Fit ARIMA model for internet traffic
 data_diff = internet_traffic['DataInDiff'].dropna()
 model_traffic = ARIMA(data_diff, order=(5,1,0))
 model_traffic_fit = model_traffic.fit()
 
-# Predict next 3 days
-next_traffic_diff = model_traffic_fit.forecast(steps=3)
-last_traffic = internet_traffic['DataIn(TB)'].iloc[-1]
+# Predict next 4 days
+next_traffic_diff = model_traffic_fit.forecast(steps=4)
+last_traffic = internet_traffic.iloc[-1, 1]
 next_traffic = last_traffic + np.cumsum(next_traffic_diff)
 next_traffic[next_traffic < 0] = 0  # Ensure no negative values
 
-# Fit Linear Regression models for temperature prediction
-athens_temperatures.dropna(subset=['AvgDiff'], inplace=True)
-thessaloniki_temperatures.dropna(subset=['AvgDiff'], inplace=True)
-
-X_athens = athens_temperatures.index.dayofyear.values.reshape(-1, 1)
-y_athens = athens_temperatures['AvgDiff'].values
-model_athens = LinearRegression().fit(X_athens, y_athens)
-
-X_thessaloniki = thessaloniki_temperatures.index.dayofyear.values.reshape(-1, 1)
-y_thessaloniki = thessaloniki_temperatures['AvgDiff'].values
-model_thessaloniki = LinearRegression().fit(X_thessaloniki, y_thessaloniki)
-
-# Predict temperatures for the next 3 days
-next_dates_temp = pd.date_range(start=athens_temperatures.index.max() + pd.Timedelta(days=1), periods=3, freq='D')
-next_days_athens = next_dates_temp.dayofyear.values.reshape(-1, 1)
-next_temperatures_athens_diff = model_athens.predict(next_days_athens)
-last_temp_athens = athens_temperatures['Avg'].iloc[-1]
-next_temperatures_athens = last_temp_athens + np.cumsum(next_temperatures_athens_diff)
-
-next_days_thessaloniki = next_dates_temp.dayofyear.values.reshape(-1, 1)
-next_temperatures_thessaloniki_diff = model_thessaloniki.predict(next_days_thessaloniki)
-last_temp_thessaloniki = thessaloniki_temperatures['Avg'].iloc[-1]
-next_temperatures_thessaloniki = last_temp_thessaloniki + np.cumsum(next_temperatures_thessaloniki_diff)
-
 # Plotting
-fig, axs = plt.subplots(2, 1, figsize=(10, 12), sharex=True)
-
-# Plot Temperature Data
-axs[0].plot(athens_temperatures.index, athens_temperatures['Avg'], label='Athens Temp', color='blue')
-axs[0].plot(thessaloniki_temperatures.index, thessaloniki_temperatures['Avg'], label='Thessaloniki Temp', color='red')
-axs[0].plot(next_dates_temp, next_temperatures_athens, 'g--', label='Predicted Athens')
-axs[0].plot(next_dates_temp, next_temperatures_thessaloniki, 'm--', label='Predicted Thessaloniki')
-axs[0].legend()
-axs[0].grid(True)
-
-# Plot Internet Traffic Data
-axs[1].plot(internet_traffic.index, internet_traffic['DataIn(TB)'], label='Internet Traffic', color='green')
-axs[1].plot(next_dates_temp, next_traffic, 'orange', linestyle='--', label='Predicted Traffic')
-axs[1].legend()
-axs[1].grid(True)
-
-# Set the same x-axis range for both plots
-axs[0].set_xlim(athens_temperatures.index.min(), next_dates_temp[-1])
-axs[1].set_xlim(athens_temperatures.index.min(), next_dates_temp[-1])
-
+fig, ax = plt.subplots(figsize=(10, 6))
+ax.plot(internet_traffic.index, internet_traffic.iloc[:, 1], label='Internet Traffic', color='green')
+ax.plot(forecast_dates, next_traffic, 'orange', linestyle='--', label='Predicted Traffic')
+ax.legend()
+ax.grid(True)
+ax.set_xlim(internet_traffic.index.min(), forecast_dates[-1])
 plt.tight_layout()
 plt.show()
+
+
+# ###WORKING -< Fine tuning the prediction of internet traffic for the last 4 days based on the weather forecast
+
+# import pandas as pd
+# import numpy as np
+# import matplotlib.pyplot as plt
+# from statsmodels.tsa.stattools import adfuller
+# from statsmodels.tsa.arima.model import ARIMA
+# from sklearn.linear_model import LinearRegression
+# import os
+
+# # Directory paths
+# ath_dir = '/home/itp22109/Documents/HUA/HUA MSc/Χειμερινό 2023/Διπλωματική/GIT_repo/ATH'
+# thes_dir = '/home/itp22109/Documents/HUA/HUA MSc/Χειμερινό 2023/Διπλωματική/GIT_repo/THES'
+# data_dir = '/home/itp22109/Documents/HUA/HUA MSc/Χειμερινό 2023/Διπλωματική/GIT_repo/DATA'
+
+# # Load data
+# athens_temperatures = pd.read_csv(os.path.join(ath_dir, 'weather_data_ath_pred.csv'))
+# thessaloniki_temperatures = pd.read_csv(os.path.join(thes_dir, 'weather_data_thess_pred.csv'))
+# internet_traffic = pd.read_csv(os.path.join(data_dir, 'output_data.csv'))
+
+# # Convert Date column to datetime format
+# athens_temperatures['Date'] = pd.to_datetime(athens_temperatures['Date'])
+# thessaloniki_temperatures['Date'] = pd.to_datetime(thessaloniki_temperatures['Date'])
+# internet_traffic['Date'] = pd.to_datetime(internet_traffic['Date'])
+
+# # Set Date as index with frequency
+# def set_index_with_freq(df):
+#     df.set_index('Date', inplace=True)
+#     df = df.asfreq('D')  # Explicitly setting daily frequency
+#     return df
+
+# internet_traffic = set_index_with_freq(internet_traffic)
+# athens_temperatures = set_index_with_freq(athens_temperatures)
+# thessaloniki_temperatures = set_index_with_freq(thessaloniki_temperatures)
+
+# # Function to check and ensure stationarity
+# def ensure_stationarity(series):
+#     result = adfuller(series.dropna())
+#     if result[1] > 0.05:  # Not stationary, require differencing
+#         series_diff = series.diff().dropna()
+#         result = adfuller(series_diff.dropna())
+#         if result[1] > 0.05:
+#             return series_diff.diff().dropna()  # Second differencing if still not stationary
+#         return series_diff
+#     return series
+
+# # Ensure stationarity for internet traffic
+# internet_traffic['DataInDiff'] = ensure_stationarity(internet_traffic['DataIn(TB)'])
+
+# # Ensure stationarity for temperature data
+# athens_temperatures['AvgDiff'] = ensure_stationarity(athens_temperatures['Avg'])
+# thessaloniki_temperatures['AvgDiff'] = ensure_stationarity(thessaloniki_temperatures['Avg'])
+
+# # Fit ARIMA model for internet traffic
+# data_diff = internet_traffic['DataInDiff'].dropna()
+# model_traffic = ARIMA(data_diff, order=(5,1,0))
+# model_traffic_fit = model_traffic.fit()
+
+# # Predict next 3 days
+# next_traffic_diff = model_traffic_fit.forecast(steps=3)
+# last_traffic = internet_traffic['DataIn(TB)'].iloc[-1]
+# next_traffic = last_traffic + np.cumsum(next_traffic_diff)
+# next_traffic[next_traffic < 0] = 0  # Ensure no negative values
+
+# # Fit Linear Regression models for temperature prediction
+# athens_temperatures.dropna(subset=['AvgDiff'], inplace=True)
+# thessaloniki_temperatures.dropna(subset=['AvgDiff'], inplace=True)
+
+# X_athens = athens_temperatures.index.dayofyear.values.reshape(-1, 1)
+# y_athens = athens_temperatures['AvgDiff'].values
+# model_athens = LinearRegression().fit(X_athens, y_athens)
+
+# X_thessaloniki = thessaloniki_temperatures.index.dayofyear.values.reshape(-1, 1)
+# y_thessaloniki = thessaloniki_temperatures['AvgDiff'].values
+# model_thessaloniki = LinearRegression().fit(X_thessaloniki, y_thessaloniki)
+
+# # Predict temperatures for the next 3 days
+# next_dates_temp = pd.date_range(start=athens_temperatures.index.max() + pd.Timedelta(days=1), periods=3, freq='D')
+# next_days_athens = next_dates_temp.dayofyear.values.reshape(-1, 1)
+# next_temperatures_athens_diff = model_athens.predict(next_days_athens)
+# last_temp_athens = athens_temperatures['Avg'].iloc[-1]
+# next_temperatures_athens = last_temp_athens + np.cumsum(next_temperatures_athens_diff)
+
+# next_days_thessaloniki = next_dates_temp.dayofyear.values.reshape(-1, 1)
+# next_temperatures_thessaloniki_diff = model_thessaloniki.predict(next_days_thessaloniki)
+# last_temp_thessaloniki = thessaloniki_temperatures['Avg'].iloc[-1]
+# next_temperatures_thessaloniki = last_temp_thessaloniki + np.cumsum(next_temperatures_thessaloniki_diff)
+
+# # Plotting
+# fig, axs = plt.subplots(2, 1, figsize=(10, 12), sharex=True)
+
+# # Plot Temperature Data
+# axs[0].plot(athens_temperatures.index, athens_temperatures['Avg'], label='Athens Temp', color='blue')
+# axs[0].plot(thessaloniki_temperatures.index, thessaloniki_temperatures['Avg'], label='Thessaloniki Temp', color='red')
+# axs[0].plot(next_dates_temp, next_temperatures_athens, 'g--', label='Predicted Athens')
+# axs[0].plot(next_dates_temp, next_temperatures_thessaloniki, 'm--', label='Predicted Thessaloniki')
+# axs[0].legend()
+# axs[0].grid(True)
+
+# # Plot Internet Traffic Data
+# axs[1].plot(internet_traffic.index, internet_traffic['DataIn(TB)'], label='Internet Traffic', color='green')
+# axs[1].plot(next_dates_temp, next_traffic, 'orange', linestyle='--', label='Predicted Traffic')
+# axs[1].legend()
+# axs[1].grid(True)
+
+# # Set the same x-axis range for both plots
+# axs[0].set_xlim(athens_temperatures.index.min(), next_dates_temp[-1])
+# axs[1].set_xlim(athens_temperatures.index.min(), next_dates_temp[-1])
+
+# plt.tight_layout()
+# plt.show()
 
 
 
