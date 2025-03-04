@@ -17,7 +17,6 @@ from selenium.common.exceptions import TimeoutException, StaleElementReferenceEx
 chrome_driver_path = '/usr/local/bin/chromedriver'
 
 chrome_options = Options()
-# chrome_options.add_argument("--headless")
 chrome_options.add_argument("--start-maximized")
 
 # Get today's date
@@ -33,103 +32,46 @@ def is_last_day_of_month(date):
         next_date = date.replace(day=date.day + 1)
         return next_date.month != date.month
     except ValueError:
-        return True  # If the day exceeds the month's range, it's the last day
+        return True
 
-
-# Mapping of month abbreviations to their respective numeric values
+# Mapping of month abbreviations to numeric values
 month_mapping = {
     'Jan': 1, 'Feb': 2, 'Mar': 3, 'Apr': 4, 'May': 5, 'Jun': 6,
     'Jul': 7, 'Aug': 8, 'Sep': 9, 'Oct': 10, 'Nov': 11, 'Dec': 12
 }
-last_date = None  # Ensure it's defined
+
 # Check if the CSV file exists and is not empty
 if os.path.isfile('weather_data_thess_pred.csv') and os.path.getsize('weather_data_thess_pred.csv') > 0:
     with open('weather_data_thess_pred.csv', 'r') as csvfile:
         last_date = None
-        print("last date is =", last_date)
         for line in csvfile.readlines():
             if line.strip():
-                last_date = line.split(',')[0].strip()  # Assuming date is the first column
-                print("Last Date =", last_date)
-
-# Initialize start_year with a default value
-default_year=2022
-default_month = 1
-start_year = 2022
-start_month = 1
-# start_day = 1
-#last_date = None
-
-
-# # Check if the last date in CSV file is February 27th or 28th
-# if last_date:
-#     last_date_parts = last_date.split('/')
-#     last_month = month_mapping[last_date_parts[1]]  # Convert month abbreviation to numeric value
-#     last_day = int(last_date_parts[2])
-#     if is_last_day_of_month(datetime.strptime(last_date, '%Y/%b/%d').date()):
-#         # If the last date is the last day of the month, set the start month to the next month
-#         start_month = last_month + 1
-#         # If the start month exceeds 12, reset it to 1 and increment the year
-#         if start_month > 12:
-#             start_month = 1
-#             start_year = int(last_date_parts[0]) + 1  # Increment the year
-#     else:
-#         # If the last date is not the last day of the month, use the last month from the CSV
-#         start_month = last_month
-#         start_year = int(last_date_parts[0])
-
-# else:
-#     start_month = 1
-# Check if last_date is valid
-if last_date:
-    try:
-        last_date_parts = last_date.split('/')  # Split date into parts
-        if len(last_date_parts) < 3:  # Check if date is in expected format
-            raise ValueError(f"Invalid date format: {last_date}")  # Raise error for invalid format
-        last_month = month_mapping[last_date_parts[1]]  # Convert month abbreviation to numeric value
-        last_day = int(last_date_parts[2])  # Parse the day part
-        print ('last month =',last_month)
-    except (ValueError, KeyError) as e:  # Catch errors for invalid date format or month abbreviation
-
-        print(f"Error processing last date: {e}")
-        last_date = None  # Set last_date to None if there is an issue with it
+                last_date = line.split(',')[0]  # Assuming date is the first column
 else:
-    print("No valid last date found in the CSV.")
+    last_date = None
 
-# If last_date is None (or invalid), set the default start month
-if not last_date:
-    print("Using default start values.")
-    start_month = default_month  # Default to January if no valid last_date
-    start_year = default_year    # Ensure start_year is assigned
-
-print ('last date =',last_date)
-
-# Check if the last date in CSV file is February 27th or 28th
 if last_date:
     last_date_parts = last_date.split('/')
-    print('last date parts: ', last_date_parts)
-    last_month = month_mapping[last_date_parts[1]]  # Convert month abbreviation to numeric value
+    last_year = int(last_date_parts[0])
+    last_month = month_mapping[last_date_parts[1]]
     last_day = int(last_date_parts[2])
     
     if is_last_day_of_month(datetime.strptime(last_date, '%Y/%b/%d').date()):
-        # If the last date is the last day of the month, set the start month to the next month
         start_month = last_month + 1
-        print('start month is ', start_month)
-        # If the start month exceeds 12, reset it to 1 and increment the year
         if start_month > 12:
             start_month = 1
-            start_year = int(last_date_parts[0]) + 1  # Increment the year
-            print('start year >12 is: ', start_year)
+            start_year = last_year + 1
         else:
-            # If the last date is not the last day of the month, use the last month from the CSV
-            #start_month = last_month
-            start_year = int(last_date_parts[0])
-            print('start year if not last date is:', start_year)
+            start_year = last_year
     else:
-        start_month = default_month
-        start_year  = int(last_date_parts[0])
-        print('start year last parts is: ', start_year)
+        start_month = last_month
+        start_year = last_year
+else:
+    start_month = 1
+    start_year = 2022
 
+service = Service(chrome_driver_path)
+driver = webdriver.Chrome(service=service, options=chrome_options)
 
 # Open the CSV file in append mode
 with open('weather_data_thess_pred.csv', 'a', newline='') as csvfile:
@@ -139,7 +81,6 @@ with open('weather_data_thess_pred.csv', 'a', newline='') as csvfile:
     if csvfile.tell() == 0:
         csvwriter.writerow(['Date', 'Max', 'Avg', 'Min'])  # Header
 
-    print('start year if is: ', start_year)
     # Iterate over the years from start_year to the current year
     for year in range(start_year, today.year + 1):
         # For the starting year, start from the calculated start_month
@@ -173,7 +114,7 @@ with open('weather_data_thess_pred.csv', 'a', newline='') as csvfile:
 
                 try:
                     # Once inside the iframe, locate the accept button
-                    accept_button = WebDriverWait(driver, 10).until(
+                    accept_button = WebDriverWait(driver, 5).until(
                         EC.element_to_be_clickable(((By.CSS_SELECTOR, 'button[title="Accept all"]')))
                     )
                     print("Accept button found inside the cookie pop-up iframe.")
@@ -186,18 +127,18 @@ with open('weather_data_thess_pred.csv', 'a', newline='') as csvfile:
                     print("Couldn't find the accept button inside the cookie pop-up iframe:", e)
             except Exception as e:
                 print("No cookie consent pop-up iframe found:", e)
-
+            
             try:
-
+                
                 # Maximum number of retries
                 max_retries = 3
                 retry_count = 0
 
                 while retry_count < max_retries:
                     try:
-                        try:
+                        try:               
                                 # Wait for the button to be clickable
-                                button = WebDriverWait(driver, 10).until(
+                                button = WebDriverWait(driver, 5).until(
                                     EC.element_to_be_clickable((By.CSS_SELECTOR, 'button[id="wuSettings"]' ))
                                 )
                                 
@@ -205,19 +146,19 @@ with open('weather_data_thess_pred.csv', 'a', newline='') as csvfile:
                                 button.click()
                                 
                                 # Wait for all tables to be present on the page
-                                tables = WebDriverWait(driver, 10).until(
+                                tables = WebDriverWait(driver, 5).until(
                                     #EC.presence_of_all_elements_located((By.TAG_NAME, "table"))
                                     EC.presence_of_all_elements_located((By.XPATH,'/html/body/app-root/app-history/one-column-layout/wu-header/sidenav/mat-sidenav-container/mat-sidenav-content/div[1]/div[2]/lib-settings/header/div'))
                                 )
                         
                                 # Wait for all tables to be present on the page
-                                tables = WebDriverWait(driver, 10).until(
+                                tables = WebDriverWait(driver, 5).until(
                                     #EC.presence_of_all_elements_located((By.TAG_NAME, "table"))
                                     EC.presence_of_all_elements_located((By.XPATH,'/html/body/app-root/app-history/one-column-layout/wu-header/sidenav/mat-sidenav-container/mat-sidenav-content/div[1]/div[2]/lib-settings/header/div/div/a[2]'))
                                 )
 
                                 # Wait for the element to be clickable
-                                link_element = WebDriverWait(driver, 20).until(
+                                link_element = WebDriverWait(driver, 5).until(
                                     EC.element_to_be_clickable((By.XPATH,'/html/body/app-root/app-history/one-column-layout/wu-header/sidenav/mat-sidenav-container/mat-sidenav-content/div[1]/div[2]/lib-settings/header/div/div/a[2]'))
                                 )
                                 link_element.click()
@@ -229,13 +170,13 @@ with open('weather_data_thess_pred.csv', 'a', newline='') as csvfile:
                             print("StaleElementReferenceException occurred. Locating elements again...")
                             # You can add code here to locate the elements again and retry the action
                             # Wait for all tables to be present on the page
-                            tables = WebDriverWait(driver, 10).until(
+                            tables = WebDriverWait(driver, 5).until(
                                     #EC.presence_of_all_elements_located((By.TAG_NAME, "table"))
                                     EC.presence_of_all_elements_located((By.XPATH,'/html/body/app-root/app-history/one-column-layout/wu-header/sidenav/mat-sidenav-container/mat-sidenav-content/div[1]/div[2]/lib-settings/header/div'))
                                 )
                         
                                 # Wait for all tables to be present on the page
-                            tables = WebDriverWait(driver, 10).until(
+                            tables = WebDriverWait(driver, 5).until(
                                     #EC.presence_of_all_elements_located((By.TAG_NAME, "table"))
                                     EC.presence_of_all_elements_located((By.XPATH,'/html/body/app-root/app-history/one-column-layout/wu-header/sidenav/mat-sidenav-container/mat-sidenav-content/div[1]/div[2]/lib-settings/header/div/div/a[2]'))
                                 )
@@ -254,7 +195,7 @@ with open('weather_data_thess_pred.csv', 'a', newline='') as csvfile:
                     # You can add further actions here, like raising an exception or handling the failure.
 
                 # Wait for all tables to be present on the page
-                tables = WebDriverWait(driver, 10).until(
+                tables = WebDriverWait(driver, 5).until(
                     EC.presence_of_all_elements_located((By.TAG_NAME, "table"))
                 )
 
@@ -305,6 +246,8 @@ with open('weather_data_thess_pred.csv', 'a', newline='') as csvfile:
             # Stop if the current year and month reach today's date
             if year == today.year and month == today.month:
                 break
+
+
 
 # Path to your ChromeDriver executable
 chrome_driver_path = '/usr/local/bin/chromedriver'
@@ -395,12 +338,12 @@ with open(csv_file_path, 'a', newline='') as csvfile:
 
 
             # Wait for the forecast table to load fully
-            forecast_table = WebDriverWait(driver, 20).until(
+            forecast_table = WebDriverWait(driver, 10).until(
                 EC.presence_of_element_located((By.XPATH, "//div[contains(@class, 'obs-date')]"))
             )
 
             # Retrieve forecast data
-            forecast_data_element = WebDriverWait(driver, 20).until(
+            forecast_data_element = WebDriverWait(driver, 5).until(
                 EC.presence_of_element_located((
                     By.XPATH, "/html/body/app-root/app-tenday/one-column-layout/wu-header/sidenav/mat-sidenav-container/mat-sidenav-content/div[2]/section/div[3]/div[1]/div/div[1]/div/lib-forecast-chart/div/div/div/lib-forecast-chart-header-daily/div/div"
                 ))
