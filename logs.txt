@@ -1,0 +1,28 @@
+Executing: /home/itp22109/Documents/HUA/HUA MSc/Χειμερινό 2023/Διπλωματική/GIT_repo/DATA/traffic.py in /home/itp22109/Documents/HUA/HUA MSc/Χειμερινό 2023/Διπλωματική/GIT_repo/DATA
+  % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
+                                 Dload  Upload   Total   Spent    Left  Speed
+  0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0100  7415    0  7415    0     0  37033      0 --:--:-- --:--:-- --:--:-- 36890100 43802    0 43802    0     0   192k      0 --:--:-- --:--:-- --:--:--  191k
+Data has been written to output_data.csv
+Finished: /home/itp22109/Documents/HUA/HUA MSc/Χειμερινό 2023/Διπλωματική/GIT_repo/DATA/traffic.py
+Executing: /home/itp22109/Documents/HUA/HUA MSc/Χειμερινό 2023/Διπλωματική/GIT_repo/ATH/weather_ath_pred.py in /home/itp22109/Documents/HUA/HUA MSc/Χειμερινό 2023/Διπλωματική/GIT_repo/ATH
+Cookie consent pop-up iframe found.
+Accept button found inside the cookie pop-up iframe.
+date_str =  2025/Mar/01
+last_date =  2025/Mar/01
+day =  1
+date_str =  2025/Mar/02
+last_date =  2025/Mar/01
+day =  2
+date_str =  2025/Mar/03
+last_date =  2025/Mar/01
+day =  3
+date_str =  2025/Mar/04
+last_date =  2025/Mar/01
+day =  4
+Traceback (most recent call last):
+  File "/home/itp22109/Documents/HUA/HUA MSc/Χειμερινό 2023/Διπλωματική/GIT_repo/ATH/weather_ath_pred.py", line 326, in <module>
+    celsius_button = WebDriverWait(driver, 10).until(
+                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3/dist-packages/selenium/webdriver/support/wait.py", line 102, in until
+    time.sleep(self._poll)
+KeyboardInterrupt
